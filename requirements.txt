@@ -3,7 +3,7 @@
 
 flask==3.1.0
 gunicorn==23.0.0
-torch==2.5.1+cpu
+torch==2.15.0+cpu
 transformers==4.46.3
 sentencepiece==0.2.0
 pymupdf==1.25.1
