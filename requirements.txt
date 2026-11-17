@@ -1,10 +1,13 @@
-flask>=3.0.0
-gunicorn
-transformers>=4.40.0
-torch>=2.0.0
-sentencepiece>=0.2.0
-pymupdf>=1.24.0
-pandas>=2.2.0
-openpyxl>=3.1.0
-python-docx>=1.1.0
-reportlab>=4.0.0
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+flask==3.1.0
+gunicorn==23.0.0
+torch==2.5.1+cpu
+transformers==4.46.3
+sentencepiece==0.2.0
+pymupdf==1.25.1
+pandas==2.2.3
+openpyxl==3.1.5
+python-docx==1.1.2
+reportlab==4.2.5
