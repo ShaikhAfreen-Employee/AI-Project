@@ -3,72 +3,9 @@ import re
 import math
 from collections import Counter
 
-# T5 is loaded only when needed
-_summarizer_pipeline = None
-_model_attempted = False
-
-
-def get_summarizer():
-    global _summarizer_pipeline, _model_attempted
-
-    if _model_attempted:
-        return _summarizer_pipeline
-
-    _model_attempted = True
-
-    try:
-        import torch
-        from transformers import pipeline
-
-        # Limit CPU memory usage
-        torch.set_num_threads(1)
-
-        print("[BriefIQ] Loading T5-small...")
-
-        _summarizer_pipeline = pipeline(
-            "text2text-generation",
-            model="t5-small",
-            device=-1
-        )
-
-        print("[BriefIQ] T5-small loaded successfully!")
-
-    except Exception as e:
-        print(f"[BriefIQ] T5 unavailable: {e}")
-        _summarizer_pipeline = None
-
-    return _summarizer_pipeline
-
 
 def clean_text(text):
     return re.sub(r'\s+', ' ', text).strip()
-
-
-def split_into_chunks(text, max_chunk_words=200):
-    sentences = re.split(r'(?<=[.!?])\s+', text)
-    chunks = []
-    current = []
-    count = 0
-
-    for sentence in sentences:
-        sentence = sentence.strip()
-        if not sentence:
-            continue
-
-        words = len(sentence.split())
-
-        if count + words > max_chunk_words and current:
-            chunks.append(" ".join(current))
-            current = [sentence]
-            count = words
-        else:
-            current.append(sentence)
-            count += words
-
-    if current:
-        chunks.append(" ".join(current))
-
-    return chunks or [text]
 
 
 def extract_key_takeaways(text, num_bullets=4):
@@ -108,7 +45,7 @@ def extract_key_takeaways(text, num_bullets=4):
 
 
 def fallback_extractive_summary(text, num_sentences=4):
-    bullets = extract_key_takeaways(text, num_bullets=num_sentences)
+    bullets = extract_key_takeaways(text, num_sentences)
     return " ".join(bullets) if bullets else text[:500]
 
 
@@ -120,40 +57,11 @@ def generate_summary(text, summary_mode="detailed",
     if not text:
         return "No text available to summarize."
 
-    if summary_mode == "concise":
-        max_tokens, min_tokens = 70, 15
-    elif summary_mode == "executive":
-        max_tokens, min_tokens = 120, 25
-    else:
-        max_tokens, min_tokens = 100, 20
-
-    # Use extractive summary if text is very long
+    # Keep processing lightweight for Render free plan
     if len(text.split()) > 600:
         text = " ".join(text.split()[:600])
 
-    model = get_summarizer()
-
-    if model is not None:
-        try:
-            chunks = split_into_chunks(text, 200)
-            summaries = []
-
-            # Process at most two chunks to reduce memory/time
-            for chunk in chunks[:2]:
-                result = model(
-                    "summarize: " + chunk,
-                    max_new_tokens=max_tokens,
-                    min_new_tokens=min_tokens,
-                    do_sample=False
-                )
-                summaries.append(result[0]["generated_text"].strip())
-
-            if summaries:
-                return " ".join(summaries)
-
-        except Exception as e:
-            print(f"[BriefIQ] T5 error: {e}")
-
+    # Use extractive summarization; do not load T5/PyTorch
     return fallback_extractive_summary(text)
 
 
@@ -185,10 +93,6 @@ def analyze_document_text(text, summary_mode="detailed"):
             "original_reading_time_mins": original_time,
             "summary_reading_time_mins": summary_time,
             "time_saved_mins": max(0, original_time - summary_time),
-            "model_used": (
-                "Google T5-small (Deep Learning)"
-                if _summarizer_pipeline is not None
-                else "Extractive Summarization (Fallback)"
-            )
+            "model_used": "Lightweight Extractive Summarization"
         }
     }
