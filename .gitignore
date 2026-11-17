@@ -28,3 +28,10 @@ desktop.ini
 # SQLite journal/temporary files
 *.db-journal
 *.sqlite-journal
+
+
+# User uploads and generated reports
+Uploads/*
+!Uploads/.gitkeep
+Reports/*
+!Reports/.gitkeep
